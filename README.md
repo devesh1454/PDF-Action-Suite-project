@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 📄 pdfSuite
 
 > **A high-performance, privacy-first PDF productivity and transformation workspace running 100% client-side.**
@@ -145,3 +146,7 @@ If presenting this project in an engineering interview, emphasize:
 
 ## 📜 License
 Distributed under the MIT License. Open for educational and personal use.
+=======
+# PDF-Action-Suite-project
+PDF Action Suite is a web-based toolkit for managing PDF files easily. It provides features like image-to-PDF conversion, PDF merging, format conversion, and watermarking through a simple, user-friendly interface built with HTML, CSS, and JavaScript ,Firebase.
+>>>>>>> e477e1825fb8c3e0695e2cc5e0691ce033734389
