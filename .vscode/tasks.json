@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run pdfSuite locally",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"http.server",
+				"8080",
+				"--directory",
+				"pdf4"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

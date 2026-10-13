@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic Search – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="semantic-home.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="index.html">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <div class="nav-right">
+      <div class="profile-wrap" id="profileWrap">
+        <button class="profile-btn" id="profileBtn" onclick="toggleDropdown()">
+          <div class="avatar" id="avatarEl">U</div>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-user">
+            <div class="dropdown-avatar" id="dropAvatarEl">U</div>
+            <div>
+              <p class="dropdown-name" id="dropName">User</p>
+              <p class="dropdown-email" id="dropEmail">user@example.com</p>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item logout-item" onclick="handleLogout()">
+            <i data-lucide="log-out" style="width:15px;height:15px;"></i>
+            Log out
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="page-content">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-badge">
+        <i data-lucide="sparkles" style="width:13px;height:13px;color:#d4900a;"></i>
+        <span>AI-Powered Feature</span>
+      </div>
+      <h1>Search your PDFs<br><span class="hero-accent">intelligently.</span></h1>
+      <p class="hero-sub">Ask questions in plain English and get precise answers pulled directly from your documents — no manual scanning required.</p>
+    </section>
+
+    <!-- VISUAL CARD -->
+    <section class="visual-section">
+      <div class="visual-card">
+        <!-- Left: illustration -->
+        <div class="visual-illustration">
+          <div class="doc-stack">
+            <div class="doc doc-back">
+              <div class="doc-line"></div>
+              <div class="doc-line short"></div>
+              <div class="doc-line"></div>
+              <div class="doc-line short"></div>
+            </div>
+            <div class="doc doc-mid">
+              <div class="doc-line"></div>
+              <div class="doc-line short"></div>
+              <div class="doc-line"></div>
+            </div>
+            <div class="doc doc-front">
+              <div class="doc-line"></div>
+              <div class="doc-line short"></div>
+              <div class="doc-line"></div>
+              <div class="doc-line highlight"></div>
+              <div class="doc-line short"></div>
+            </div>
+          </div>
+          <div class="search-bubble">
+            <i data-lucide="search" style="width:14px;height:14px;color:#6b4fc8;flex-shrink:0;"></i>
+            <span>"What are the key findings?"</span>
+          </div>
+          <div class="result-bubble">
+            <div class="result-dot"></div>
+            <span>Found on page 3, section 2…</span>
+          </div>
+        </div>
+
+        <!-- Right: feature list -->
+        <div class="visual-features">
+          <h2>How it works</h2>
+          <ul class="feature-list">
+            <li class="feature-item">
+              <div class="feat-icon-box" style="background:#deeaf7;">
+                <i data-lucide="upload" style="width:16px;height:16px;color:#2d7dd2;"></i>
+              </div>
+              <div>
+                <p class="feat-title">Upload your PDF</p>
+                <p class="feat-desc">Drop in any PDF — reports, contracts, research papers.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feat-icon-box" style="background:#e5dcf5;">
+                <i data-lucide="message-circle" style="width:16px;height:16px;color:#6b4fc8;"></i>
+              </div>
+              <div>
+                <p class="feat-title">Ask anything</p>
+                <p class="feat-desc">Type your question naturally — our AI understands context.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feat-icon-box" style="background:#d6f0e0;">
+                <i data-lucide="zap" style="width:16px;height:16px;color:#2a9e5c;"></i>
+              </div>
+              <div>
+                <p class="feat-title">Get instant answers</p>
+                <p class="feat-desc">Relevant excerpts surfaced in seconds with page references.</p>
+              </div>
+            </li>
+          </ul>
+
+          <button class="cta-btn" onclick="goToSearch()">
+            <i data-lucide="search" style="width:16px;height:16px;"></i>
+            Start Searching
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAT STRIP -->
+    <section class="stat-strip">
+      <div class="stat-item">
+        <span class="stat-num">AI</span>
+        <span class="stat-label">Semantic understanding</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">Private & secure</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">Fast</span>
+        <span class="stat-label">Instant results</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ① Plain globals — dropdown & fallback logout work immediately -->
+  <script>
+    function toggleDropdown() {
+      document.getElementById("profileDropdown").classList.toggle("open");
+    }
+
+    document.addEventListener("click", function(e) {
+      const wrap = document.getElementById("profileWrap");
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById("profileDropdown").classList.remove("open");
+      }
+    });
+
+    function goToSearch() {
+      window.location.href = "semantic/semantic-search.html";
+    }
+
+    // Fallback logout (no Firebase signOut) — overridden once module loads
+    function handleLogout() {
+      localStorage.removeItem("loggedInUserId");
+      window.location.href = "index.html";
+    }
+  </script>
+
+  <!-- ② Firebase module — auth guard, user info, proper signOut -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDptoEwAw703H07ihBb7lNoRB2OUbug8xA",
+      authDomain: "cattlecare-register.firebaseapp.com",
+      projectId: "cattlecare-register",
+      storageBucket: "cattlecare-register.firebasestorage.app",
+      messagingSenderId: "882467181127",
+      appId: "1:882467181127:web:0b101f73d38faaf56f1762",
+      measurementId: "G-WGKZDNVD3E"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // Auth guard + populate avatar/name/email
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "auth/login.html";
+        return;
+      }
+
+      let initials     = "U";
+      let displayName  = "User";
+      let displayEmail = user.email || "";
+
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const data  = snap.data();
+          const first = data.firstName || "";
+          const last  = data.lastName  || "";
+          displayName = [first, last].filter(Boolean).join(" ") || displayEmail;
+          initials    = ((first[0] || "") + (last[0] || "")).toUpperCase() || displayEmail[0].toUpperCase();
+        }
+      } catch (_) {
+        initials    = displayEmail[0]?.toUpperCase() || "U";
+        displayName = displayEmail;
+      }
+
+      document.getElementById("avatarEl").textContent     = initials;
+      document.getElementById("dropAvatarEl").textContent = initials;
+      document.getElementById("dropName").textContent     = displayName;
+      document.getElementById("dropEmail").textContent    = displayEmail;
+    });
+
+    // Override fallback with proper Firebase signOut
+    window.handleLogout = function() {
+      signOut(auth).then(() => {
+        localStorage.removeItem("loggedInUserId");
+        window.location.href = "index.html";
+      }).catch((err) => {
+        console.error("Logout error:", err);
+      });
+    };
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

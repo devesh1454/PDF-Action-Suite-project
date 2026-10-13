@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic Search – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="semantic-search.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="../index.html">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <div class="nav-right">
+      <div class="profile-wrap" id="profileWrap">
+        <button class="profile-btn" id="profileBtn" onclick="toggleDropdown()">
+          <div class="avatar" id="avatarEl">U</div>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-user">
+            <div class="dropdown-avatar" id="dropAvatarEl">U</div>
+            <div>
+              <p class="dropdown-name" id="dropName">User</p>
+              <p class="dropdown-email" id="dropEmail">user@example.com</p>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item logout-item" onclick="handleLogout()">
+            <i data-lucide="log-out" style="width:15px;height:15px;"></i>
+            Log out
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <div class="app-layout">
+
+    <!-- LEFT PANEL: PDF Upload & Info -->
+    <aside class="left-panel" id="leftPanel">
+
+      <!-- Upload state -->
+      <div class="upload-section" id="uploadSection">
+        <div class="panel-header">
+          <h2>Document</h2>
+          <p>Upload a PDF to search</p>
+        </div>
+        <div class="drop-zone" id="dropZone">
+          <div class="dz-inner">
+            <div class="dz-icon-wrap">
+              <i data-lucide="file-text" style="width:28px;height:28px;color:#bbb;"></i>
+            </div>
+            <p class="dz-title">Drop PDF here</p>
+            <p class="dz-sub">or click to browse</p>
+            <span class="dz-badge">PDF only</span>
+          </div>
+        </div>
+        <input type="file" id="pdfInput" accept=".pdf" style="display:none;" />
+      </div>
+
+      <!-- Loaded state -->
+      <div class="doc-info-section hidden" id="docInfoSection">
+        <div class="panel-header">
+          <h2>Document</h2>
+          <button class="change-doc-btn" id="changeDocBtn" onclick="resetDocument()">
+            <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i>
+            Change
+          </button>
+        </div>
+
+        <div class="doc-card" id="docCard">
+          <div class="doc-card-icon">
+            <i data-lucide="file-text" style="width:20px;height:20px;color:#e03e2d;"></i>
+          </div>
+          <div class="doc-card-info">
+            <p class="doc-card-name" id="docFileName">document.pdf</p>
+            <p class="doc-card-meta" id="docFileMeta">0 pages · 0 KB</p>
+          </div>
+        </div>
+
+        <!-- Processing indicator -->
+        <div class="processing-bar" id="processingBar">
+          <div class="processing-inner">
+            <div class="processing-spinner"></div>
+            <span id="processingText">Extracting text…</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+
+        <!-- Ready indicator -->
+        <div class="ready-badge hidden" id="readyBadge">
+          <i data-lucide="check-circle" style="width:14px;height:14px;color:#2a9e5c;"></i>
+          <span>Ready to search</span>
+          <span class="chunk-count" id="chunkCount"></span>
+        </div>
+
+        <!-- Document stats -->
+        <div class="doc-stats hidden" id="docStats">
+          <div class="stat-row">
+            <span class="stat-label">Pages</span>
+            <span class="stat-val" id="statPages">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Words</span>
+            <span class="stat-val" id="statWords">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Chunks</span>
+            <span class="stat-val" id="statChunks">—</span>
+          </div>
+        </div>
+
+        <!-- Suggested questions -->
+        <div class="suggestions-section hidden" id="suggestionsSection">
+          <p class="suggestions-title">Try asking</p>
+          <div class="suggestions-list" id="suggestionsList"></div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- RIGHT PANEL: Chat -->
+    <main class="chat-panel" id="chatPanel">
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <i data-lucide="search" style="width:32px;height:32px;color:#ccc;"></i>
+        </div>
+        <h3>Ask anything about your PDF</h3>
+        <p>Upload a document on the left, then ask questions in plain English.</p>
+        <div class="empty-examples">
+          <span class="example-chip" onclick="useExample(this)">"Summarize the key findings"</span>
+          <span class="example-chip" onclick="useExample(this)">"What are the main conclusions?"</span>
+          <span class="example-chip" onclick="useExample(this)">"List all important dates mentioned"</span>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-area" id="messagesArea"></div>
+
+      <!-- Input bar -->
+      <div class="input-bar-wrap">
+        <div class="input-bar" id="inputBar">
+          <div class="input-doc-chip hidden" id="inputDocChip">
+            <i data-lucide="file-text" style="width:12px;height:12px;"></i>
+            <span id="inputDocName"></span>
+          </div>
+          <textarea
+            id="questionInput"
+            class="question-input"
+            placeholder="Upload a PDF first…"
+            rows="1"
+            disabled
+            onkeydown="handleKeydown(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendQuestion()" disabled>
+            <i data-lucide="arrow-up" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <p class="input-hint">Press Enter to send · Shift+Enter for new line</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="semantic-search.js"></script>
+
+  <!-- Firebase Auth Guard -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDptoEwAw703H07ihBb7lNoRB2OUbug8xA",
+      authDomain: "cattlecare-register.firebaseapp.com",
+      projectId: "cattlecare-register",
+      storageBucket: "cattlecare-register.firebasestorage.app",
+      messagingSenderId: "882467181127",
+      appId: "1:882467181127:web:0b101f73d38faaf56f1762"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "../auth/login.html";
+        return;
+      }
+      let initials = "U", displayName = "User", displayEmail = user.email || "";
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const d = snap.data();
+          const f = d.firstName || "", l = d.lastName || "";
+          displayName = [f, l].filter(Boolean).join(" ") || displayEmail;
+          initials = ((f[0] || "") + (l[0] || "")).toUpperCase() || displayEmail[0].toUpperCase();
+        }
+      } catch (_) {
+        initials = displayEmail[0]?.toUpperCase() || "U";
+        displayName = displayEmail;
+      }
+      document.getElementById("avatarEl").textContent     = initials;
+      document.getElementById("dropAvatarEl").textContent = initials;
+      document.getElementById("dropName").textContent     = displayName;
+      document.getElementById("dropEmail").textContent    = displayEmail;
+    });
+
+    window.handleLogout = function() {
+      signOut(auth).then(() => {
+        localStorage.removeItem("loggedInUserId");
+        window.location.href = "../index.html";
+      });
+    };
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

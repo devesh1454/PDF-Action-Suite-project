@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=2" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </div>
+    <div class="nav-right">
+      <button class="login-btn" onclick="handleLogin()">Login</button>
+    </div>
+  </nav>
+
+  <div class="page-content">
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1>All your PDF tools.<br>One simple workspace.</h1>
+      <p class="hero-sub">Edit, convert, merge, and organize PDFs with<br>powerful tools — fast, private, and easy to use.</p>
+    </section>
+
+    <!-- BASIC FEATURES -->
+    <section class="section">
+      <p class="section-label">BASIC FEATURES</p>
+      <div class="cards">
+
+        <div class="card" onclick="goTo('merge')">
+          <div class="icon-box icon-blue">
+            <i data-lucide="copy" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Merge PDFs</h3>
+          <p class="card-desc">Combine multiple PDF files<br>into a single document.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <div class="card" onclick="goTo('transform')">
+          <div class="icon-box icon-green">
+            <i data-lucide="file-plus" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Transform PDFs</h3>
+          <p class="card-desc">Rotate, reorder, split, or<br>remove pages easily.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <div class="card" onclick="goTo('convert')">
+          <div class="icon-box icon-purple">
+            <i data-lucide="file-text" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Convert PDFs</h3>
+          <p class="card-desc">Convert PDFs to Word, Excel,<br>Images, and more.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <div class="card" onclick="goTo('sign')">
+          <div class="icon-box icon-yellow">
+            <i data-lucide="edit-3" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Sign & Stamp</h3>
+          <p class="card-desc">Draw, type, or stamp your<br>signature onto any page.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <div class="card" onclick="goTo('watermark')">
+          <div class="icon-box icon-teal">
+            <i data-lucide="shield-check" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Watermark & Numbers</h3>
+          <p class="card-desc">Stamp confidential marks<br>or add page numbers.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+        <div class="card" onclick="goTo('img2pdf')">
+          <div class="icon-box icon-rose">
+            <i data-lucide="images" class="card-icon"></i>
+          </div>
+          <h3 class="card-title">Image to PDF</h3>
+          <p class="card-desc">Convert JPG, PNG & WebP<br>images into a clean PDF.</p>
+          <span class="card-arrow">→</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ADVANCED -->
+    <section class="section">
+      <p class="section-label">ADVANCED</p>
+      <div class="advanced-box">
+        <div class="advanced-left">
+          <i data-lucide="lock" class="lock-icon"></i>
+          <div>
+            <p class="advanced-title">Semantic Search (Login Required)</p>
+            <p class="advanced-sub">Search inside your documents using AI-powered semantic search.</p>
+          </div>
+        </div>
+        <button class="advanced-login-btn" onclick="handleLogin()">
+          <i data-lucide="lock" class="btn-icon"></i> Login
+        </button>
+      </div>
+    </section>
+
+    <!-- FOOTER STATS -->
+    <footer class="footer">
+      <div class="footer-item">
+        <i data-lucide="shield" class="footer-icon"></i>
+        <span>Your files stay private and secure</span>
+      </div>
+      <div class="footer-item">
+        <i data-lucide="zap" class="footer-icon"></i>
+        <span>Fast processing, no waiting</span>
+      </div>
+      <div class="footer-item">
+        <i data-lucide="users" class="footer-icon"></i>
+        <span>Built for productivity</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

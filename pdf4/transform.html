@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transform PDFs – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="feature.css" />
+  <style>
+    /* Thumbnail grid for shuffle / remove */
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .thumb-item {
+      border: 2px solid #ebebeb;
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+      cursor: grab;
+      background: #fafafa;
+      transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+      user-select: none;
+      position: relative;
+    }
+    .thumb-item:hover   { border-color: #888; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .thumb-item.dragging { opacity: 0.4; cursor: grabbing; }
+    .thumb-item.drag-over { border-color: #1a1a1a; background: #f0f0f0; }
+    .thumb-item.selected { border-color: #e03e2d; background: #fde8e8; }
+    .thumb-item canvas { width: 100%; height: auto; border-radius: 4px; display: block; }
+    .thumb-item .page-num { font-size: 11px; color: #999; margin-top: 6px; font-weight: 500; }
+    .thumb-item .remove-check {
+      position: absolute; top: 6px; right: 6px;
+      width: 18px; height: 18px; background: #e03e2d; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      color: #fff; font-size: 10px; font-weight: 700;
+    }
+    .thumb-item.selected .remove-check { display: flex; }
+
+    /* Shuffle controls bar */
+    .shuffle-controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .sec-btn {
+      border: 1px solid #d0d0d0; background: #fff; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: background 0.15s;
+    }
+    .sec-btn:hover { background: #f5f5f5; }
+
+
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a class="nav-left" href="index.html" style="text-decoration:none;">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Home</button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Transform PDFs</h1>
+      <p>Rotate, split, remove pages, or shuffle your PDF.</p>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">📄</div>
+      <h3>Click to upload or drag & drop</h3>
+      <p>Select one PDF file to transform</p>
+      <input type="file" id="fileInput" accept=".pdf" />
+    </div>
+
+    <div id="fileName" style="font-size:13px;color:#555;margin-bottom:18px;display:none;"></div>
+
+    <!-- OPERATION SELECTOR -->
+    <div class="controls" id="controls" style="display:none;">
+      <h3>Choose Operation</h3>
+      <div class="control-row">
+        <label>Operation</label>
+        <select id="operation" onchange="toggleOptions()">
+          <option value="rotate">Rotate Pages</option>
+          <option value="split">Split PDF</option>
+          <option value="remove">Remove Pages</option>
+          <option value="shuffle">Shuffle Pages</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── ROTATE OPTIONS ── -->
+    <div id="rotateOpts" class="controls" style="display:none;">
+      <h3>Rotate Options</h3>
+      <div class="control-row">
+        <label>Rotate</label>
+        <select id="rotateDeg">
+          <option value="90">90° Clockwise</option>
+          <option value="180">180°</option>
+          <option value="270">270° (90° Counter-clockwise)</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Apply to</label>
+        <select id="rotateTarget" onchange="toggleRotatePage()">
+          <option value="all">All pages</option>
+          <option value="specific">Specific page</option>
+        </select>
+      </div>
+      <div class="control-row" id="rotatePageRow" style="display:none;">
+        <label>Page number</label>
+        <input type="number" id="rotatePage" min="1" value="1" style="width:80px;" />
+      </div>
+    </div>
+
+    <!-- ── SPLIT OPTIONS ── -->
+    <div id="splitOpts" class="controls" style="display:none;">
+      <h3>Split Options</h3>
+      <div class="control-row">
+        <label>Split after page</label>
+        <select id="splitAfter" style="width:100px;"></select>
+        <span style="font-size:13px;color:#888;">(creates 2 files)</span>
+      </div>
+    </div>
+
+    <!-- ── REMOVE PAGES ── (thumbnail UI) -->
+    <div id="removeOpts" style="display:none; margin-bottom:8px;">
+      <p class="section-label" style="margin-bottom:12px;">CLICK PAGES TO MARK FOR REMOVAL</p>
+      <div class="thumb-grid" id="removeThumbGrid"></div>
+      <p id="removeSelCount" style="font-size:13px;color:#e03e2d;margin-bottom:16px;"></p>
+    </div>
+
+    <!-- ── SHUFFLE PAGES ── (thumbnail UI) -->
+    <div id="shuffleOpts" style="display:none; margin-bottom:8px;">
+      <div class="shuffle-controls">
+        <button class="sec-btn" onclick="randomize()">🎲 Randomize Order</button>
+        <button class="sec-btn" onclick="reverseOrder()">↕️ Reverse Order</button>
+        <button class="sec-btn" onclick="resetOrder()">↺ Reset to Original</button>
+      </div>
+      <p class="section-label" style="margin-bottom:12px;">DRAG TO REORDER PAGES</p>
+      <div class="thumb-grid" id="shuffleThumbGrid"></div>
+    </div>
+
+
+    <!-- ACTION BUTTON -->
+    <button class="action-btn" id="actionBtn" onclick="runTransform()" disabled>
+      Apply & Download
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let loadedFile = null;
+    let totalPages = 0;
+    let originalOrder = [];
+    let currentOrder = [];
+    let removedPages = new Set();
+    let dragSrcPos = null;
+
+    // ── FILE LOADING ────────────────────────────────
+    const dz = document.getElementById('dropZone');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragging'); loadFile(e.dataTransfer.files[0]); });
+    document.getElementById('fileInput').addEventListener('change', e => loadFile(e.target.files[0]));
+
+    async function loadFile(file) {
+      if (!file || file.type !== 'application/pdf') return;
+      loadedFile = file;
+      const fn = document.getElementById('fileName');
+      fn.style.display = 'block';
+      fn.innerHTML = `📄 <strong>${file.name}</strong> &nbsp;<span style="color:#aaa;">(${(file.size/1024).toFixed(1)} KB)</span>`;
+
+      // Get page count
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      totalPages = pdfDoc.numPages;
+
+      // Build split select options
+      const splitSel = document.getElementById('splitAfter');
+      splitSel.innerHTML = '';
+      for (let i = 1; i < totalPages; i++) {
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = `Page ${i}`;
+        splitSel.appendChild(opt);
+      }
+      if (totalPages <= 1) {
+        const opt = document.createElement('option');
+        opt.value = 1; opt.textContent = 'Only 1 page — can\'t split';
+        opt.disabled = true;
+        splitSel.appendChild(opt);
+      }
+
+      // Render thumbnails for shuffle + remove
+      originalOrder = [];
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: 0.5 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        originalOrder.push({ pageIndex: i - 1, canvas, label: i });
+      }
+      currentOrder = [...originalOrder];
+      removedPages = new Set();
+
+      document.getElementById('controls').style.display = 'block';
+      document.getElementById('actionBtn').disabled = false;
+      toggleOptions();
+    }
+
+    // ── OPERATION TOGGLING ────────────────────────────
+    function toggleOptions() {
+      const op = document.getElementById('operation').value;
+      document.getElementById('rotateOpts').style.display   = op === 'rotate'   ? 'block' : 'none';
+      document.getElementById('splitOpts').style.display    = op === 'split'    ? 'block' : 'none';
+      document.getElementById('removeOpts').style.display   = op === 'remove'   ? 'block' : 'none';
+      document.getElementById('shuffleOpts').style.display  = op === 'shuffle'  ? 'block' : 'none';
+
+      if (op === 'remove' && loadedFile)   renderRemoveThumbs();
+      if (op === 'shuffle' && loadedFile)  renderShuffleThumbs();
+    }
+
+    function toggleRotatePage() {
+      const val = document.getElementById('rotateTarget').value;
+      document.getElementById('rotatePageRow').style.display = val === 'specific' ? 'flex' : 'none';
+    }
+
+    // ── REMOVE PAGES THUMBNAILS ───────────────────────
+    function renderRemoveThumbs() {
+      const grid = document.getElementById('removeThumbGrid');
+      grid.innerHTML = '';
+      originalOrder.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'thumb-item' + (removedPages.has(idx) ? ' selected' : '');
+        div.dataset.idx = idx;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = item.canvas.width; canvas.height = item.canvas.height;
+        canvas.getContext('2d').drawImage(item.canvas, 0, 0);
+
+        const check = document.createElement('div');
+        check.className = 'remove-check'; check.textContent = '✕';
+
+        const label = document.createElement('div');
+        label.className = 'page-num'; label.textContent = `Page ${item.label}`;
+
+        div.appendChild(check); div.appendChild(canvas); div.appendChild(label);
+        div.addEventListener('click', () => toggleRemovePage(idx));
+        grid.appendChild(div);
+      });
+      updateRemoveCount();
+    }
+
+    function toggleRemovePage(idx) {
+      if (removedPages.has(idx)) removedPages.delete(idx);
+      else removedPages.add(idx);
+      renderRemoveThumbs();
+    }
+
+    function updateRemoveCount() {
+      const el = document.getElementById('removeSelCount');
+      const n = removedPages.size;
+      el.textContent = n > 0 ? `${n} page${n > 1 ? 's' : ''} selected for removal` : '';
+    }
+
+    // ── SHUFFLE THUMBNAILS ────────────────────────────
+    function renderShuffleThumbs() {
+      const grid = document.getElementById('shuffleThumbGrid');
+      grid.innerHTML = '';
+      currentOrder.forEach((item, pos) => {
+        const div = document.createElement('div');
+        div.className = 'thumb-item';
+        div.draggable = true;
+        div.dataset.pos = pos;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = item.canvas.width; canvas.height = item.canvas.height;
+        canvas.getContext('2d').drawImage(item.canvas, 0, 0);
+
+        const label = document.createElement('div');
+        label.className = 'page-num'; label.textContent = `Page ${pos + 1}`;
+
+        div.appendChild(canvas); div.appendChild(label);
+        grid.appendChild(div);
+
+        div.addEventListener('dragstart', onDragStart);
+        div.addEventListener('dragover',  onDragOver);
+        div.addEventListener('dragleave', onDragLeave);
+        div.addEventListener('drop',      onDrop);
+        div.addEventListener('dragend',   onDragEnd);
+      });
+    }
+
+    function onDragStart(e) {
+      dragSrcPos = parseInt(this.dataset.pos);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    function onDragOver(e) {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('#shuffleThumbGrid .thumb-item').forEach(el => el.classList.remove('drag-over'));
+      this.classList.add('drag-over');
+    }
+    function onDragLeave() { this.classList.remove('drag-over'); }
+    function onDrop(e) {
+      e.preventDefault();
+      const targetPos = parseInt(this.dataset.pos);
+      if (dragSrcPos === targetPos) return;
+      const moved = currentOrder.splice(dragSrcPos, 1)[0];
+      currentOrder.splice(targetPos, 0, moved);
+      renderShuffleThumbs();
+    }
+    function onDragEnd() {
+      document.querySelectorAll('#shuffleThumbGrid .thumb-item').forEach(el => {
+        el.classList.remove('dragging'); el.classList.remove('drag-over');
+      });
+    }
+
+    function randomize() {
+      for (let i = currentOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentOrder[i], currentOrder[j]] = [currentOrder[j], currentOrder[i]];
+      }
+      renderShuffleThumbs();
+    }
+    function reverseOrder() { currentOrder.reverse(); renderShuffleThumbs(); }
+    function resetOrder()   { currentOrder = [...originalOrder]; renderShuffleThumbs(); }
+
+
+    // ── MAIN TRANSFORM RUNNER ─────────────────────────
+    async function runTransform() {
+      const status = document.getElementById('status');
+      status.className = 'status loading'; status.textContent = 'Processing…';
+      try {
+        const bytes = await loadedFile.arrayBuffer();
+        const op = document.getElementById('operation').value;
+
+        if (op === 'rotate') {
+          const doc = await PDFLib.PDFDocument.load(bytes);
+          const deg = parseInt(document.getElementById('rotateDeg').value);
+          const target = document.getElementById('rotateTarget').value;
+          const pages = doc.getPages();
+          if (target === 'all') {
+            pages.forEach(p => p.setRotation(PDFLib.degrees((p.getRotation().angle + deg) % 360)));
+          } else {
+            const idx = parseInt(document.getElementById('rotatePage').value) - 1;
+            if (idx < 0 || idx >= pages.length) throw new Error('Invalid page number');
+            pages[idx].setRotation(PDFLib.degrees((pages[idx].getRotation().angle + deg) % 360));
+          }
+          download(await doc.save(), 'rotated.pdf');
+          status.className = 'status success'; status.textContent = '✓ Rotated successfully!';
+
+        } else if (op === 'split') {
+          const doc = await PDFLib.PDFDocument.load(bytes);
+          const total = doc.getPageCount();
+          const after = parseInt(document.getElementById('splitAfter').value);
+          if (after < 1 || after >= total) throw new Error(`Split point must be between 1 and ${total - 1}`);
+
+          const part1 = await PDFLib.PDFDocument.create();
+          const p1pages = await part1.copyPages(doc, [...Array(after).keys()]);
+          p1pages.forEach(p => part1.addPage(p));
+
+          const part2 = await PDFLib.PDFDocument.create();
+          const p2pages = await part2.copyPages(doc, [...Array(total - after).keys()].map(i => i + after));
+          p2pages.forEach(p => part2.addPage(p));
+
+          download(await part1.save(), 'part1.pdf');
+          setTimeout(async () => download(await part2.save(), 'part2.pdf'), 500);
+          status.className = 'status success'; status.textContent = '✓ Split into 2 files!';
+
+        } else if (op === 'remove') {
+          if (removedPages.size === 0) throw new Error('No pages selected for removal');
+          const doc = await PDFLib.PDFDocument.load(bytes);
+          const total = doc.getPageCount();
+          const keepIndices = [...Array(total).keys()].filter(i => !removedPages.has(i));
+          if (keepIndices.length === 0) throw new Error('Cannot remove all pages');
+          const newDoc = await PDFLib.PDFDocument.create();
+          const kept = await newDoc.copyPages(doc, keepIndices);
+          kept.forEach(p => newDoc.addPage(p));
+          download(await newDoc.save(), 'removed-pages.pdf');
+          status.className = 'status success'; status.textContent = `✓ Removed ${removedPages.size} page(s)!`;
+
+        } else if (op === 'shuffle') {
+          const doc = await PDFLib.PDFDocument.load(bytes);
+          const newDoc = await PDFLib.PDFDocument.create();
+          const newIndices = currentOrder.map(item => item.pageIndex);
+          const pages = await newDoc.copyPages(doc, newIndices);
+          pages.forEach(p => newDoc.addPage(p));
+          download(await newDoc.save(), 'reordered.pdf');
+          status.className = 'status success'; status.textContent = '✓ Saved! Download started.';
+        }
+
+      } catch(e) {
+        status.className = 'status error'; status.textContent = '✗ Error: ' + e.message;
+      }
+    }
+
+    function download(bytes, name) {
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

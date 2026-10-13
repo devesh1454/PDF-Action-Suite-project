@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+.vercel/
+
+# Environment Variables & Secrets
+.env
+.env.local
+*.env
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

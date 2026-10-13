@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watermark & Page Numbers – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="feature.css" />
+  <style>
+    .wm-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 820px) {
+      .wm-layout { grid-template-columns: 1fr; }
+    }
+
+    .preset-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      margin-bottom: 12px;
+    }
+
+    .chip-btn {
+      background: #f1f1f1;
+      border: 1px solid #dcdcdc;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+    .chip-btn:hover { background: #e2e2e2; }
+
+    .color-opts {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .color-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s;
+    }
+    .color-dot:hover { transform: scale(1.15); }
+    .color-dot.active { border-color: #1a1a1a; }
+    .dot-gray { background: #6b7280; }
+    .dot-red  { background: #ef4444; }
+    .dot-blue { background: #3b82f6; }
+
+    .preview-box {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-canvas-wrap {
+      position: relative;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      background: #f8f8f8;
+      overflow: hidden;
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 380px;
+    }
+
+    #previewCanvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="index.html" style="text-decoration:none;">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      ← Back to Home
+    </button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Watermark & Page Numbers</h1>
+      <p>Stamp confidential text watermarks or add automatic page numbers across your PDF.</p>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone">
+      <div class="dz-icon">🛡️</div>
+      <h3>Click to upload or drag & drop a PDF</h3>
+      <p>Select a document to watermark</p>
+      <input type="file" id="fileInput" accept=".pdf" />
+    </div>
+
+    <!-- WORKSPACE -->
+    <div id="wmWorkspace" style="display:none;">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; padding:12px 18px; border-radius:10px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i data-lucide="file-text" style="color:#2d7dd2; width:20px; height:20px;"></i>
+          <span id="docFileName" style="font-size:14px; font-weight:600; color:#1a1a1a;">document.pdf</span>
+          <span id="docPageCount" style="font-size:12px; color:#888;">(0 pages)</span>
+        </div>
+        <button class="btn-sm" style="padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="resetFile()">Change File</button>
+      </div>
+
+      <div class="wm-layout">
+
+        <!-- CONTROLS COLUMN -->
+        <div>
+          <!-- WATERMARK OPTIONS -->
+          <div class="controls">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="margin-bottom:0;">1. Text Watermark</h3>
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="enableWatermark" checked onchange="updateLivePreview()" /> Enable
+              </label>
+            </div>
+
+            <div class="control-row">
+              <label>Watermark Text:</label>
+              <input type="text" id="wmText" value="CONFIDENTIAL" style="flex:1; border:1px solid #d8d8d8; border-radius:8px; padding:7px 12px; font-size:13px;" oninput="updateLivePreview()" />
+            </div>
+
+            <div class="preset-btns">
+              <button class="chip-btn" onclick="setPreset('CONFIDENTIAL')">CONFIDENTIAL</button>
+              <button class="chip-btn" onclick="setPreset('DRAFT')">DRAFT</button>
+              <button class="chip-btn" onclick="setPreset('DO NOT COPY')">DO NOT COPY</button>
+              <button class="chip-btn" onclick="setPreset('SAMPLE')">SAMPLE</button>
+            </div>
+
+            <div class="control-row">
+              <label>Text Color:</label>
+              <div class="color-opts">
+                <div class="color-dot dot-gray active" onclick="setColor('gray', this)" title="Gray"></div>
+                <div class="color-dot dot-red" onclick="setColor('red', this)" title="Red"></div>
+                <div class="color-dot dot-blue" onclick="setColor('blue', this)" title="Blue"></div>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label>Opacity:</label>
+              <input type="range" id="wmOpacity" min="10" max="80" value="25" style="flex:1;" oninput="updateLivePreview()" />
+              <span id="wmOpacityVal" style="font-size:12px; color:#666; width:35px;">25%</span>
+            </div>
+
+            <div class="control-row">
+              <label>Orientation:</label>
+              <select id="wmOrientation" onchange="updateLivePreview()">
+                <option value="diagonal">Diagonal (45°)</option>
+                <option value="horizontal">Horizontal (0°)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- PAGE NUMBER OPTIONS -->
+          <div class="controls">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="margin-bottom:0;">2. Page Numbering</h3>
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="enableNumbers" checked onchange="updateLivePreview()" /> Enable
+              </label>
+            </div>
+
+            <div class="control-row">
+              <label>Format:</label>
+              <select id="numFormat" onchange="updateLivePreview()">
+                <option value="page-x-of-y">Page X of Y</option>
+                <option value="x-of-y">X / Y</option>
+                <option value="x-only">X (Number only)</option>
+              </select>
+            </div>
+
+            <div class="control-row">
+              <label>Position:</label>
+              <select id="numPosition" onchange="updateLivePreview()">
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="top-right">Top Right</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="action-btn" id="applyBtn" onclick="applyAndDownload()">
+            Apply & Download PDF
+          </button>
+          <div class="status" id="status"></div>
+        </div>
+
+        <!-- LIVE PREVIEW COLUMN -->
+        <div>
+          <div class="preview-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#555;">Live Preview (Page 1)</span>
+              <span style="font-size:12px; color:#888;">Real-time overlay</span>
+            </div>
+
+            <div class="preview-canvas-wrap" id="previewWrap">
+              <canvas id="previewCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    let loadedPdfBytes = null;
+    let pdfDoc = null;
+    let pdfNumPages = 0;
+    let selectedColor = "gray"; // 'gray', 'red', 'blue'
+
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const previewCanvas = document.getElementById("previewCanvas");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragging"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragging");
+      if (e.dataTransfer.files[0]) handlePdfFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", e => {
+      if (e.target.files[0]) handlePdfFile(e.target.files[0]);
+    });
+
+    async function handlePdfFile(file) {
+      if (file.type !== "application/pdf") {
+        alert("Please select a PDF file.");
+        return;
+      }
+      document.getElementById("docFileName").textContent = file.name;
+      loadedPdfBytes = await file.arrayBuffer();
+
+      pdfDoc = await pdfjsLib.getDocument({ data: loadedPdfBytes.slice(0) }).promise;
+      pdfNumPages = pdfDoc.numPages;
+      document.getElementById("docPageCount").textContent = `(${pdfNumPages} ${pdfNumPages === 1 ? 'page' : 'pages'})`;
+
+      dropZone.style.display = "none";
+      document.getElementById("wmWorkspace").style.display = "block";
+
+      lucide.createIcons();
+      await updateLivePreview();
+    }
+
+    function resetFile() {
+      loadedPdfBytes = null;
+      pdfDoc = null;
+      document.getElementById("wmWorkspace").style.display = "none";
+      dropZone.style.display = "block";
+      fileInput.value = "";
+    }
+
+    function setPreset(txt) {
+      document.getElementById("wmText").value = txt;
+      updateLivePreview();
+    }
+
+    function setColor(color, el) {
+      selectedColor = color;
+      document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("active"));
+      el.classList.add("active");
+      updateLivePreview();
+    }
+
+    // ── RENDER LIVE PREVIEW ─────────────────────────────
+    async function updateLivePreview() {
+      if (!pdfDoc) return;
+
+      const opacityVal = document.getElementById("wmOpacity").value;
+      document.getElementById("wmOpacityVal").textContent = `${opacityVal}%`;
+
+      const page = await pdfDoc.getPage(1);
+      const containerWidth = document.getElementById("previewWrap").clientWidth - 32;
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const scale = Math.min(1.2, containerWidth / unscaledViewport.width);
+      const viewport = page.getViewport({ scale });
+
+      previewCanvas.width = viewport.width;
+      previewCanvas.height = viewport.height;
+
+      const ctx = previewCanvas.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Draw Watermark Overlay
+      if (document.getElementById("enableWatermark").checked) {
+        const text = document.getElementById("wmText").value.trim() || "CONFIDENTIAL";
+        const isDiagonal = document.getElementById("wmOrientation").value === "diagonal";
+        const opacity = opacityVal / 100;
+
+        ctx.save();
+        ctx.translate(viewport.width / 2, viewport.height / 2);
+        if (isDiagonal) ctx.rotate(-Math.PI / 4);
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `bold ${Math.round(44 * scale)}px 'Inter', sans-serif`;
+
+        let fillStyle = `rgba(107, 114, 128, ${opacity})`;
+        if (selectedColor === "red") fillStyle = `rgba(239, 68, 68, ${opacity})`;
+        if (selectedColor === "blue") fillStyle = `rgba(59, 130, 246, ${opacity})`;
+
+        ctx.fillStyle = fillStyle;
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+
+      // Draw Page Number Overlay
+      if (document.getElementById("enableNumbers").checked) {
+        const format = document.getElementById("numFormat").value;
+        const pos = document.getElementById("numPosition").value;
+
+        let numStr = `Page 1 of ${pdfNumPages}`;
+        if (format === "x-of-y") numStr = `1 / ${pdfNumPages}`;
+        if (format === "x-only") numStr = "1";
+
+        ctx.save();
+        ctx.font = `500 ${Math.round(11 * scale)}px 'Inter', sans-serif`;
+        ctx.fillStyle = "#555555";
+
+        let nx = viewport.width / 2;
+        let ny = viewport.height - (18 * scale);
+        ctx.textAlign = "center";
+
+        if (pos === "bottom-right") {
+          nx = viewport.width - (24 * scale);
+          ctx.textAlign = "right";
+        } else if (pos === "top-right") {
+          nx = viewport.width - (24 * scale);
+          ny = 24 * scale;
+          ctx.textAlign = "right";
+        }
+
+        ctx.fillText(numStr, nx, ny);
+        ctx.restore();
+      }
+    }
+
+    // ── BAKE WITH PDF-LIB ──────────────────────────────
+    async function applyAndDownload() {
+      const status = document.getElementById("status");
+      status.className = "status loading";
+      status.textContent = "Applying watermark & page numbers…";
+
+      try {
+        const pdfDocToModify = await PDFLib.PDFDocument.load(loadedPdfBytes);
+        const font = await pdfDocToModify.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const regularFont = await pdfDocToModify.embedFont(PDFLib.StandardFonts.Helvetica);
+
+        const enableWm = document.getElementById("enableWatermark").checked;
+        const enableNum = document.getElementById("enableNumbers").checked;
+        const wmText = document.getElementById("wmText").value.trim() || "CONFIDENTIAL";
+        const isDiagonal = document.getElementById("wmOrientation").value === "diagonal";
+        const opacity = parseInt(document.getElementById("wmOpacity").value) / 100;
+        const numFormat = document.getElementById("numFormat").value;
+        const numPosition = document.getElementById("numPosition").value;
+
+        // Color mapper for pdf-lib
+        let rgbColor = PDFLib.rgb(0.42, 0.45, 0.50); // gray
+        if (selectedColor === "red") rgbColor = PDFLib.rgb(0.93, 0.27, 0.27);
+        if (selectedColor === "blue") rgbColor = PDFLib.rgb(0.23, 0.51, 0.96);
+
+        const pages = pdfDocToModify.getPages();
+        const total = pages.length;
+
+        pages.forEach((page, idx) => {
+          const { width, height } = page.getSize();
+
+          // 1. Watermark
+          if (enableWm) {
+            const fontSize = Math.min(width, height) * 0.08;
+            const textWidth = font.widthOfTextAtSize(wmText, fontSize);
+            const textHeight = font.heightAtSize(fontSize);
+
+            if (isDiagonal) {
+              const angle = PDFLib.degrees(45);
+              const rad = (45 * Math.PI) / 180;
+              // Center compensation for diagonal text
+              const x = (width / 2) - (textWidth / 2) * Math.cos(rad);
+              const y = (height / 2) - (textWidth / 2) * Math.sin(rad);
+
+              page.drawText(wmText, {
+                x,
+                y,
+                size: fontSize,
+                font,
+                color: rgbColor,
+                opacity,
+                rotate: angle,
+              });
+            } else {
+              page.drawText(wmText, {
+                x: (width / 2) - (textWidth / 2),
+                y: (height / 2) - (textHeight / 2),
+                size: fontSize,
+                font,
+                color: rgbColor,
+                opacity,
+              });
+            }
+          }
+
+          // 2. Page Number
+          if (enableNum) {
+            let numStr = `Page ${idx + 1} of ${total}`;
+            if (numFormat === "x-of-y") numStr = `${idx + 1} / ${total}`;
+            if (numFormat === "x-only") numStr = `${idx + 1}`;
+
+            const numSize = 10;
+            const numTextWidth = regularFont.widthOfTextAtSize(numStr, numSize);
+
+            let nx = (width / 2) - (numTextWidth / 2);
+            let ny = 20;
+
+            if (numPosition === "bottom-right") {
+              nx = width - numTextWidth - 30;
+            } else if (numPosition === "top-right") {
+              nx = width - numTextWidth - 30;
+              ny = height - 30;
+            }
+
+            page.drawText(numStr, {
+              x: nx,
+              y: ny,
+              size: numSize,
+              font: regularFont,
+              color: PDFLib.rgb(0.3, 0.3, 0.3),
+              opacity: 0.85,
+            });
+          }
+        });
+
+        const modifiedBytes = await pdfDocToModify.save();
+        const blob = new Blob([modifiedBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `watermarked_${document.getElementById("docFileName").textContent || "document.pdf"}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        status.className = "status success";
+        status.textContent = "✓ Watermark and page numbers applied successfully!";
+      } catch (err) {
+        console.error(err);
+        status.className = "status error";
+        status.textContent = `✗ Error: ${err.message}`;
+      }
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign PDFs – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Great+Vibes&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="feature.css" />
+  <style>
+    .sign-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 820px) {
+      .sign-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Tabs */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #e5e5e5;
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #777;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    /* Signature Drawing Canvas */
+    .canvas-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .sig-canvas-wrap {
+      position: relative;
+      border: 2px dashed #dcdcdc;
+      border-radius: 8px;
+      background: #ffffff;
+      height: 180px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #sigCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .canvas-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      color: #aaa;
+      pointer-events: none;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sig-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .color-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s;
+    }
+
+    .color-dot:hover { transform: scale(1.15); }
+    .color-dot.active { border-color: #1a1a1a; }
+    .dot-blue  { background: #1e3a8a; }
+    .dot-black { background: #111827; }
+    .dot-red   { background: #dc2626; }
+
+    .btn-sm {
+      background: #f3f3f3;
+      border: 1px solid #d5d5d5;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-sm:hover { background: #e8e8e8; }
+
+    /* Type input */
+    .type-input {
+      width: 100%;
+      border: 1px solid #d8d8d8;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 15px;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+      margin-bottom: 12px;
+    }
+    .type-input:focus { border-color: #1a1a1a; }
+
+    .font-select {
+      width: 100%;
+      border: 1px solid #d8d8d8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* PDF Preview Box with Click-to-Place */
+    .preview-panel {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdf-preview-container {
+      position: relative;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      background: #f8f8f8;
+      overflow: hidden;
+      margin-top: 10px;
+      cursor: crosshair;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 340px;
+    }
+
+    #pdfCanvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    /* Visual Stamp Overlay on PDF */
+    .stamp-overlay {
+      position: absolute;
+      border: 2px dashed #2563eb;
+      background: rgba(37, 99, 235, 0.12);
+      border-radius: 6px;
+      cursor: move;
+      user-select: none;
+      display: none;
+      pointer-events: auto;
+    }
+
+    .stamp-overlay-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .stamp-tag {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      background: #2563eb;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .range-slider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .range-slider input[type="range"] {
+      flex: 1;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="index.html" style="text-decoration:none;">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      ← Back to Home
+    </button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Sign & Stamp PDFs</h1>
+      <p>Draw, type, or stamp your signature directly onto any page — 100% private in your browser.</p>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone">
+      <div class="dz-icon">✍️</div>
+      <h3>Click to upload or drag & drop a PDF</h3>
+      <p>Select a document to sign</p>
+      <input type="file" id="fileInput" accept=".pdf" />
+    </div>
+
+    <!-- WORKSPACE (VISIBLE AFTER PDF UPLOAD) -->
+    <div id="signWorkspace" style="display:none;">
+
+      <!-- File info badge -->
+      <div id="fileInfoBadge" style="display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; padding:12px 18px; border-radius:10px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i data-lucide="file-check" style="color:#2a9e5c; width:20px; height:20px;"></i>
+          <span id="docFileName" style="font-size:14px; font-weight:600; color:#1a1a1a;">document.pdf</span>
+          <span id="docPageCount" style="font-size:12px; color:#888;">(0 pages)</span>
+        </div>
+        <button class="btn-sm" onclick="resetFile()">Change File</button>
+      </div>
+
+      <div class="sign-layout">
+        
+        <!-- LEFT COLUMN: SIGNATURE CREATOR -->
+        <div>
+          <div class="canvas-card">
+            <!-- Tabs -->
+            <div class="tab-nav">
+              <button class="tab-btn active" id="tabDraw" onclick="switchTab('draw')">Draw Signature</button>
+              <button class="tab-btn" id="tabType" onclick="switchTab('type')">Type Name</button>
+              <button class="tab-btn" id="tabStamp" onclick="switchTab('stamp')">Date / Stamp</button>
+            </div>
+
+            <!-- TAB 1: DRAW -->
+            <div id="panelDraw">
+              <div class="sig-canvas-wrap" id="sigCanvasWrap">
+                <canvas id="sigCanvas"></canvas>
+                <div class="canvas-hint" id="sigHint">
+                  <i data-lucide="edit-3" style="width:14px;height:14px;"></i> Sign here with mouse or finger
+                </div>
+              </div>
+              <div class="sig-toolbar">
+                <div class="color-picker">
+                  <span style="font-size:12px; color:#666; margin-right:4px;">Ink:</span>
+                  <div class="color-dot dot-blue active" onclick="setInk('#1e3a8a', this)" title="Blue Ink"></div>
+                  <div class="color-dot dot-black" onclick="setInk('#111827', this)" title="Black Ink"></div>
+                  <div class="color-dot dot-red" onclick="setInk('#dc2626', this)" title="Red Ink"></div>
+                </div>
+                <button class="btn-sm" onclick="clearSigCanvas()">Clear</button>
+              </div>
+            </div>
+
+            <!-- TAB 2: TYPE -->
+            <div id="panelType" style="display:none;">
+              <input type="text" id="typeInput" class="type-input" placeholder="Type your full name..." />
+              <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#666; display:block; margin-bottom:4px;">Signature Style</label>
+                <select id="fontSelect" class="font-select" onchange="renderTypedSignature()">
+                  <option value="'Dancing Script', cursive">Dancing Script (Modern)</option>
+                  <option value="'Great Vibes', cursive">Great Vibes (Formal Calligraphy)</option>
+                  <option value="'Caveat', cursive">Caveat (Casual Handwriting)</option>
+                </select>
+              </div>
+              <div class="color-picker" style="margin-bottom:12px;">
+                <span style="font-size:12px; color:#666; margin-right:4px;">Ink:</span>
+                <div class="color-dot dot-blue active" onclick="setTypedColor('#1e3a8a', this)"></div>
+                <div class="color-dot dot-black" onclick="setTypedColor('#111827', this)"></div>
+                <div class="color-dot dot-red" onclick="setTypedColor('#dc2626', this)"></div>
+              </div>
+            </div>
+
+            <!-- TAB 3: STAMP / DATE -->
+            <div id="panelStamp" style="display:none;">
+              <input type="text" id="stampInput" class="type-input" value="APPROVED" placeholder="Stamp text..." />
+              <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <button class="btn-sm" onclick="setQuickStamp('APPROVED')">APPROVED</button>
+                <button class="btn-sm" onclick="setQuickStamp('VERIFIED')">VERIFIED</button>
+                <button class="btn-sm" onclick="setQuickStamp('CONFIDENTIAL')">CONFIDENTIAL</button>
+                <button class="btn-sm" onclick="setDateStamp()">TODAY'S DATE</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Placement Controls -->
+          <div class="controls">
+            <h3>Placement & Size</h3>
+            
+            <div class="control-row">
+              <label>Target Page:</label>
+              <select id="pageSelect" onchange="loadPdfPage(parseInt(this.value))"></select>
+            </div>
+
+            <div class="control-row">
+              <label>Position Preset:</label>
+              <select id="presetSelect" onchange="applyPresetPosition(this.value)">
+                <option value="bottom-right">Bottom Right</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-center">Bottom Center</option>
+                <option value="top-right">Top Right</option>
+              </select>
+            </div>
+
+            <div class="control-row">
+              <label>Signature Scale:</label>
+              <div class="range-slider">
+                <input type="range" id="scaleSlider" min="50" max="160" value="100" oninput="updateScale(this.value)" />
+                <span id="scaleValue" style="font-size:12px; color:#666; min-width:35px;">100%</span>
+              </div>
+            </div>
+            
+            <p style="font-size:12px; color:#888; margin-top:8px;">
+              💡 <strong>Tip:</strong> Click anywhere on the PDF preview on the right to position your signature instantly.
+            </p>
+          </div>
+
+          <!-- Action Button -->
+          <button class="action-btn" id="signBtn" onclick="bakeAndDownloadPdf()">
+            Sign & Download PDF
+          </button>
+          <div class="status" id="status"></div>
+        </div>
+
+        <!-- RIGHT COLUMN: INTERACTIVE PDF PREVIEW -->
+        <div>
+          <div class="preview-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#555;">Live PDF Preview</span>
+              <span id="previewPageIndicator" style="font-size:12px; color:#888;">Page 1</span>
+            </div>
+
+            <div class="pdf-preview-container" id="pdfPreviewContainer">
+              <canvas id="pdfCanvas"></canvas>
+              
+              <!-- Draggable / Click-placed stamp overlay -->
+              <div class="stamp-overlay" id="stampOverlay">
+                <span class="stamp-tag">Signature</span>
+                <img id="stampImg" class="stamp-overlay-img" alt="Signature preview" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // PDF.js worker setup
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    // State
+    let loadedPdfBytes = null;
+    let pdfDoc = null;
+    let pdfNumPages = 0;
+    let currentPage = 1;
+    let inkColor = "#1e3a8a";
+    let activeTab = "draw";
+    let isDrawing = false;
+    let hasDrawn = false;
+
+    // Overlay placement state (coordinates relative to preview canvas)
+    let stampX = 0;
+    let stampY = 0;
+    let stampBaseWidth = 140;
+    let stampBaseHeight = 65;
+    let currentScale = 1.0;
+
+    // Canvas elements
+    const sigCanvas = document.getElementById("sigCanvas");
+    const sigCtx = sigCanvas.getContext("2d");
+    const sigWrap = document.getElementById("sigCanvasWrap");
+    const sigHint = document.getElementById("sigHint");
+    const pdfCanvas = document.getElementById("pdfCanvas");
+    const stampOverlay = document.getElementById("stampOverlay");
+    const stampImg = document.getElementById("stampImg");
+    const previewContainer = document.getElementById("pdfPreviewContainer");
+
+    // Initialize Signature Canvas DPI
+    function initSigCanvas() {
+      const rect = sigWrap.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      sigCanvas.width = rect.width * dpr;
+      sigCanvas.height = rect.height * dpr;
+      sigCtx.scale(dpr, dpr);
+      sigCtx.lineCap = "round";
+      sigCtx.lineJoin = "round";
+      sigCtx.lineWidth = 2.5;
+      sigCtx.strokeStyle = inkColor;
+    }
+
+    window.addEventListener("resize", () => {
+      if (document.getElementById("signWorkspace").style.display !== "none") {
+        // Redraw page on window resize
+        if (pdfDoc) loadPdfPage(currentPage);
+      }
+    });
+
+    // ── DRAWING EVENTS ─────────────────────────────────
+    function getPointerPos(e) {
+      const rect = sigCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      isDrawing = true;
+      hasDrawn = true;
+      sigHint.style.display = "none";
+      const pos = getPointerPos(e);
+      sigCtx.beginPath();
+      sigCtx.moveTo(pos.x, pos.y);
+    }
+
+    function drawMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getPointerPos(e);
+      sigCtx.lineTo(pos.x, pos.y);
+      sigCtx.stroke();
+      updateOverlayImage();
+    }
+
+    function endDraw() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      updateOverlayImage();
+    }
+
+    sigCanvas.addEventListener("mousedown", startDraw);
+    sigCanvas.addEventListener("mousemove", drawMove);
+    window.addEventListener("mouseup", endDraw);
+
+    sigCanvas.addEventListener("touchstart", startDraw, { passive: false });
+    sigCanvas.addEventListener("touchmove", drawMove, { passive: false });
+    window.addEventListener("touchend", endDraw);
+
+    function clearSigCanvas() {
+      const rect = sigCanvas.getBoundingClientRect();
+      sigCtx.clearRect(0, 0, rect.width, rect.height);
+      hasDrawn = false;
+      sigHint.style.display = "flex";
+      updateOverlayImage();
+    }
+
+    function setInk(color, el) {
+      inkColor = color;
+      sigCtx.strokeStyle = color;
+      document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("active"));
+      el.classList.add("active");
+      if (activeTab === "draw" && hasDrawn) {
+        // repaint strokes with new ink if needed
+      }
+      if (activeTab === "type") renderTypedSignature();
+      if (activeTab === "stamp") renderStampSignature();
+    }
+
+    function setTypedColor(color, el) {
+      inkColor = color;
+      document.querySelectorAll("#panelType .color-dot").forEach(d => d.classList.remove("active"));
+      el.classList.add("active");
+      renderTypedSignature();
+    }
+
+    // ── TABS ───────────────────────────────────────────
+    function switchTab(tab) {
+      activeTab = tab;
+      document.getElementById("tabDraw").classList.toggle("active", tab === "draw");
+      document.getElementById("tabType").classList.toggle("active", tab === "type");
+      document.getElementById("tabStamp").classList.toggle("active", tab === "stamp");
+
+      document.getElementById("panelDraw").style.display  = tab === "draw" ? "block" : "none";
+      document.getElementById("panelType").style.display  = tab === "type" ? "block" : "none";
+      document.getElementById("panelStamp").style.display = tab === "stamp" ? "block" : "none";
+
+      if (tab === "type") renderTypedSignature();
+      else if (tab === "stamp") renderStampSignature();
+      else updateOverlayImage();
+    }
+
+    // ── TYPE SIGNATURE RENDERING ───────────────────────
+    const typeInput = document.getElementById("typeInput");
+    typeInput.addEventListener("input", renderTypedSignature);
+
+    function renderTypedSignature() {
+      const text = typeInput.value.trim() || "Your Signature";
+      const fontName = document.getElementById("fontSelect").value;
+      
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 400;
+      tempCanvas.height = 160;
+      const tCtx = tempCanvas.getContext("2d");
+
+      tCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tCtx.fillStyle = inkColor;
+      tCtx.font = `44px ${fontName}`;
+      tCtx.textAlign = "center";
+      tCtx.textBaseline = "middle";
+      tCtx.fillText(text, tempCanvas.width / 2, tempCanvas.height / 2);
+
+      stampImg.src = tempCanvas.toDataURL("image/png");
+      stampOverlay.style.display = "block";
+    }
+
+    // ── STAMP RENDERING ────────────────────────────────
+    const stampInput = document.getElementById("stampInput");
+    stampInput.addEventListener("input", renderStampSignature);
+
+    function setQuickStamp(txt) {
+      stampInput.value = txt;
+      renderStampSignature();
+    }
+
+    function setDateStamp() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+      stampInput.value = `SIGNED: ${dateStr}`;
+      renderStampSignature();
+    }
+
+    function renderStampSignature() {
+      const text = stampInput.value.trim() || "APPROVED";
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 360;
+      tempCanvas.height = 120;
+      const tCtx = tempCanvas.getContext("2d");
+
+      tCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tCtx.strokeStyle = "#dc2626";
+      tCtx.lineWidth = 4;
+      tCtx.strokeRect(8, 8, tempCanvas.width - 16, tempCanvas.height - 16);
+
+      tCtx.fillStyle = "#dc2626";
+      tCtx.font = "bold 28px 'Inter', sans-serif";
+      tCtx.textAlign = "center";
+      tCtx.textBaseline = "middle";
+      tCtx.fillText(text, tempCanvas.width / 2, tempCanvas.height / 2);
+
+      stampImg.src = tempCanvas.toDataURL("image/png");
+      stampOverlay.style.display = "block";
+    }
+
+    // Update overlay image from drawing canvas
+    function updateOverlayImage() {
+      if (activeTab !== "draw") return;
+      if (!hasDrawn) {
+        stampOverlay.style.display = "none";
+        return;
+      }
+      stampImg.src = sigCanvas.toDataURL("image/png");
+      stampOverlay.style.display = "block";
+    }
+
+    // ── FILE UPLOAD HANDLING ───────────────────────────
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragging"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragging");
+      if (e.dataTransfer.files[0]) handlePdfFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", e => {
+      if (e.target.files[0]) handlePdfFile(e.target.files[0]);
+    });
+
+    async function handlePdfFile(file) {
+      if (file.type !== "application/pdf") {
+        alert("Please select a valid PDF file.");
+        return;
+      }
+
+      document.getElementById("docFileName").textContent = file.name;
+      loadedPdfBytes = await file.arrayBuffer();
+
+      // Load with PDF.js
+      pdfDoc = await pdfjsLib.getDocument({ data: loadedPdfBytes.slice(0) }).promise;
+      pdfNumPages = pdfDoc.numPages;
+      document.getElementById("docPageCount").textContent = `(${pdfNumPages} ${pdfNumPages === 1 ? 'page' : 'pages'})`;
+
+      // Populate page selector
+      const pageSelect = document.getElementById("pageSelect");
+      pageSelect.innerHTML = "";
+      for (let i = 1; i <= pdfNumPages; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Page ${i} of ${pdfNumPages}`;
+        pageSelect.appendChild(opt);
+      }
+
+      // Show workspace, hide upload
+      dropZone.style.display = "none";
+      document.getElementById("signWorkspace").style.display = "block";
+
+      initSigCanvas();
+      await loadPdfPage(1);
+      applyPresetPosition("bottom-right");
+      lucide.createIcons();
+    }
+
+    function resetFile() {
+      loadedPdfBytes = null;
+      pdfDoc = null;
+      document.getElementById("signWorkspace").style.display = "none";
+      dropZone.style.display = "block";
+      fileInput.value = "";
+    }
+
+    // ── RENDER PDF PAGE TO PREVIEW CANVAS ──────────────
+    async function loadPdfPage(pageNum) {
+      currentPage = pageNum;
+      document.getElementById("previewPageIndicator").textContent = `Page ${pageNum} of ${pdfNumPages}`;
+      
+      const page = await pdfDoc.getPage(pageNum);
+      const containerWidth = previewContainer.clientWidth - 32;
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const scale = Math.min(1.2, containerWidth / unscaledViewport.width);
+      const viewport = page.getViewport({ scale });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+
+      const renderContext = {
+        canvasContext: pdfCanvas.getContext("2d"),
+        viewport: viewport
+      };
+      await page.render(renderContext).promise;
+
+      // Position stamp overlay appropriately on newly rendered canvas
+      repositionOverlayElement();
+    }
+
+    // ── CLICK-TO-PLACE ON PDF CANVAS ───────────────────
+    pdfCanvas.addEventListener("click", (e) => {
+      const rect = pdfCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const w = stampBaseWidth * currentScale;
+      const h = stampBaseHeight * currentScale;
+
+      stampX = Math.max(0, Math.min(pdfCanvas.width - w, clickX - (w / 2)));
+      stampY = Math.max(0, Math.min(pdfCanvas.height - h, clickY - (h / 2)));
+
+      repositionOverlayElement();
+    });
+
+    function applyPresetPosition(pos) {
+      const w = stampBaseWidth * currentScale;
+      const h = stampBaseHeight * currentScale;
+      const margin = 20;
+
+      if (pos === "bottom-right") {
+        stampX = pdfCanvas.width - w - margin;
+        stampY = pdfCanvas.height - h - margin;
+      } else if (pos === "bottom-left") {
+        stampX = margin;
+        stampY = pdfCanvas.height - h - margin;
+      } else if (pos === "bottom-center") {
+        stampX = (pdfCanvas.width - w) / 2;
+        stampY = pdfCanvas.height - h - margin;
+      } else if (pos === "top-right") {
+        stampX = pdfCanvas.width - w - margin;
+        stampY = margin;
+      }
+      repositionOverlayElement();
+    }
+
+    function updateScale(val) {
+      currentScale = val / 100;
+      document.getElementById("scaleValue").textContent = `${val}%`;
+      repositionOverlayElement();
+    }
+
+    function repositionOverlayElement() {
+      if (!pdfCanvas.width) return;
+      const w = stampBaseWidth * currentScale;
+      const h = stampBaseHeight * currentScale;
+
+      // Bound checks
+      stampX = Math.max(0, Math.min(pdfCanvas.width - w, stampX));
+      stampY = Math.max(0, Math.min(pdfCanvas.height - h, stampY));
+
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const containerRect = previewContainer.getBoundingClientRect();
+      
+      const offsetX = canvasRect.left - containerRect.left;
+      const offsetY = canvasRect.top - containerRect.top;
+
+      stampOverlay.style.width  = `${w}px`;
+      stampOverlay.style.height = `${h}px`;
+      stampOverlay.style.left   = `${offsetX + stampX}px`;
+      stampOverlay.style.top    = `${offsetY + stampY}px`;
+    }
+
+    // ── BAKE SIGNATURE INTO PDF VIA PDF-LIB ────────────
+    async function bakeAndDownloadPdf() {
+      const status = document.getElementById("status");
+
+      // Verify signature existence
+      if (activeTab === "draw" && !hasDrawn) {
+        status.className = "status error";
+        status.textContent = "Please draw your signature before downloading.";
+        return;
+      }
+
+      status.className = "status loading";
+      status.textContent = "Embedding signature and generating PDF…";
+
+      try {
+        // 1. Get transparent PNG data URL of signature
+        let pngDataUrl = "";
+        if (activeTab === "draw") {
+          pngDataUrl = sigCanvas.toDataURL("image/png");
+        } else if (activeTab === "type") {
+          const text = typeInput.value.trim() || "Your Signature";
+          const fontName = document.getElementById("fontSelect").value;
+          const tc = document.createElement("canvas");
+          tc.width = 400; tc.height = 160;
+          const ctx = tc.getContext("2d");
+          ctx.fillStyle = inkColor;
+          ctx.font = `44px ${fontName}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, 200, 80);
+          pngDataUrl = tc.toDataURL("image/png");
+        } else if (activeTab === "stamp") {
+          const text = stampInput.value.trim() || "APPROVED";
+          const tc = document.createElement("canvas");
+          tc.width = 360; tc.height = 120;
+          const ctx = tc.getContext("2d");
+          ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 4;
+          ctx.strokeRect(8, 8, 344, 104);
+          ctx.fillStyle = "#dc2626";
+          ctx.font = "bold 28px 'Inter', sans-serif";
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(text, 180, 60);
+          pngDataUrl = tc.toDataURL("image/png");
+        }
+
+        const pngImageBytes = await fetch(pngDataUrl).then(res => res.arrayBuffer());
+
+        // 2. Load PDF into PDF-lib
+        const pdfDocToModify = await PDFLib.PDFDocument.load(loadedPdfBytes);
+        const embeddedImage = await pdfDocToModify.embedPng(pngImageBytes);
+
+        // 3. Get target page (PDF-Lib is 0-indexed)
+        const targetPageIndex = currentPage - 1;
+        const page = pdfDocToModify.getPage(targetPageIndex);
+        const { width: pdfWidth, height: pdfHeight } = page.getSize();
+
+        // 4. Transform coordinates from Screen/Canvas to PDF coordinate space:
+        // Screen Canvas: (0,0) is TOP-LEFT.
+        // PDF Space:     (0,0) is BOTTOM-LEFT.
+        const currentStampW = stampBaseWidth * currentScale;
+        const currentStampH = stampBaseHeight * currentScale;
+
+        const scaleX = pdfWidth / pdfCanvas.width;
+        const scaleY = pdfHeight / pdfCanvas.height;
+
+        const pdfX = stampX * scaleX;
+        const pdfY = (pdfCanvas.height - stampY - currentStampH) * scaleY;
+        const embedWidth  = currentStampW * scaleX;
+        const embedHeight = currentStampH * scaleY;
+
+        // 5. Draw image onto target page
+        page.drawImage(embeddedImage, {
+          x: pdfX,
+          y: pdfY,
+          width: embedWidth,
+          height: embedHeight,
+        });
+
+        // 6. Save modified PDF and trigger download
+        const modifiedPdfBytes = await pdfDocToModify.save();
+        const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `signed_${document.getElementById("docFileName").textContent || "document.pdf"}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+
+        status.className = "status success";
+        status.textContent = "✓ Document signed and downloaded successfully!";
+      } catch (err) {
+        console.error("Signing error:", err);
+        status.className = "status error";
+        status.textContent = `✗ Failed to sign document: ${err.message}`;
+      }
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

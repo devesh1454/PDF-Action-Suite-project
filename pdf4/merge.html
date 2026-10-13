@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merge PDFs – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <link rel="stylesheet" href="feature.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <a class="nav-left" href="index.html" style="text-decoration:none;">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      ← Back to Home
+    </button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Merge PDFs</h1>
+      <p>Upload multiple PDF files and combine them into one document.</p>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">📎</div>
+      <h3>Click to upload or drag & drop</h3>
+      <p>You can select multiple PDF files at once</p>
+      <input type="file" id="fileInput" accept=".pdf" multiple />
+    </div>
+
+    <!-- FILE LIST -->
+    <ul class="file-list" id="fileList"></ul>
+
+    <!-- ACTION -->
+    <button class="action-btn" id="mergeBtn" onclick="mergePDFs()" disabled>
+      Merge & Download
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const files = [];
+
+    // Drag & drop
+    const dz = document.getElementById('dropZone');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('dragging');
+      addFiles([...e.dataTransfer.files]);
+    });
+    document.getElementById('fileInput').addEventListener('change', e => addFiles([...e.target.files]));
+
+    function addFiles(newFiles) {
+      newFiles.filter(f => f.type === 'application/pdf').forEach(f => files.push(f));
+      renderList();
+    }
+
+    function renderList() {
+      const ul = document.getElementById('fileList');
+      ul.innerHTML = '';
+      files.forEach((f, i) => {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        li.innerHTML = `
+          <span class="file-name">📄 ${f.name}</span>
+          <span style="display:flex;align-items:center;gap:12px;">
+            <span class="file-size">${(f.size/1024).toFixed(1)} KB</span>
+            <button class="remove-btn" onclick="removeFile(${i})">✕</button>
+          </span>`;
+        ul.appendChild(li);
+      });
+      document.getElementById('mergeBtn').disabled = files.length < 2;
+    }
+
+    function removeFile(i) { files.splice(i, 1); renderList(); }
+
+    async function mergePDFs() {
+      const status = document.getElementById('status');
+      status.className = 'status loading'; status.textContent = 'Merging PDFs…';
+      try {
+        const merged = await PDFLib.PDFDocument.create();
+        for (const file of files) {
+          const bytes = await file.arrayBuffer();
+          const doc = await PDFLib.PDFDocument.load(bytes);
+          const pages = await merged.copyPages(doc, doc.getPageIndices());
+          pages.forEach(p => merged.addPage(p));
+        }
+        const pdfBytes = await merged.save();
+        download(pdfBytes, 'merged.pdf', 'application/pdf');
+        status.className = 'status success'; status.textContent = '✓ Merged successfully! Download started.';
+      } catch(e) {
+        status.className = 'status error'; status.textContent = '✗ Error: ' + e.message;
+      }
+    }
+
+    function download(bytes, name, type) {
+      const blob = new Blob([bytes], { type });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name; a.click();
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

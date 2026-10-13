@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="../index.html">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <a class="back-btn" href="../index.html">← Back to Home</a>
+  </nav>
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <div class="auth-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+
+      <div class="auth-header">
+        <h1>Welcome back</h1>
+        <p>Log in to unlock Semantic Search and<br>your personal workspace.</p>
+      </div>
+
+      <div id="signInMessage" class="auth-status"></div>
+
+      <div class="auth-form">
+        <div class="field-group">
+          <label class="field-label" for="email">Email address</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="password">Password</label>
+          <div class="field-input-wrap">
+            <input class="field-input has-toggle" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" />
+            <button class="toggle-pw" type="button" onclick="toggleVisibility('password', this)" tabindex="-1">
+              <i data-lucide="eye" style="width:16px;height:16px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <button class="auth-submit-btn" id="submitSignIn" type="button">Log In</button>
+      </div>
+
+      <p class="auth-footer-link">
+        Don't have an account? <a href="signup.html">Create account</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- type="module" required for Firebase ES imports in auth.js -->
+  <script type="module" src="auth.js"></script>
+  <script>
+    function toggleVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+      btn.innerHTML = input.type === 'password'
+        ? '<i data-lucide="eye" style="width:16px;height:16px;"></i>'
+        : '<i data-lucide="eye-off" style="width:16px;height:16px;"></i>';
+      lucide.createIcons();
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

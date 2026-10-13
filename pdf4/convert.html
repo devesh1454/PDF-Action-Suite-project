@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convert PDFs – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <link rel="stylesheet" href="feature.css" />
+  <style>
+    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
+    .preview-card { border: 1px solid #ebebeb; border-radius: 10px; overflow:hidden; text-align:center; }
+    .preview-card canvas { width:100%; display:block; }
+    .preview-card .pg-label { font-size:11px; color:#999; padding:6px 0; }
+
+    .format-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .format-btn {
+      border: 2px solid #ebebeb; border-radius: 10px; padding: 18px 10px;
+      text-align: center; cursor: pointer; background: #fff; font-family: 'Inter', sans-serif;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .format-btn:hover { border-color: #888; }
+    .format-btn.selected { border-color: #1a1a1a; background: #f0f0f0; }
+    .format-btn .fmt-icon { font-size: 26px; margin-bottom: 8px; }
+    .format-btn .fmt-label { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+    .format-btn .fmt-desc  { font-size: 11px; color: #999; margin-top: 3px; }
+
+    .word-note {
+      background: #f0f4ff; border: 1px solid #c7d7f5; border-radius: 10px;
+      padding: 14px 18px; font-size: 13px; color: #3a5cbf;
+      margin-bottom: 20px; display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a class="nav-left" href="index.html" style="text-decoration:none;">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Home</button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Convert PDFs</h1>
+      <p>Convert your PDF to Word, Excel, or Images.</p>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">🔄</div>
+      <h3>Click to upload or drag & drop</h3>
+      <p>Select one PDF file to convert</p>
+      <input type="file" id="fileInput" accept=".pdf" />
+    </div>
+
+    <div id="fileName" style="font-size:13px;color:#555;margin-bottom:18px;display:none;"></div>
+
+    <!-- FORMAT SELECTION -->
+    <div id="formatSection" style="display:none;">
+      <p class="section-label" style="margin-bottom:12px;">CHOOSE OUTPUT FORMAT</p>
+
+      <div class="format-grid">
+        <div class="format-btn selected" data-fmt="word" onclick="selectFormat(this)">
+          <div class="fmt-icon">📝</div>
+          <div class="fmt-label">Word (.docx)</div>
+          <div class="fmt-desc">Editable Word document</div>
+        </div>
+        <div class="format-btn" data-fmt="excel" onclick="selectFormat(this)">
+          <div class="fmt-icon">📊</div>
+          <div class="fmt-label">Excel (.xlsx)</div>
+          <div class="fmt-desc">Spreadsheet with text</div>
+        </div>
+        <div class="format-btn" data-fmt="image" onclick="selectFormat(this)">
+          <div class="fmt-icon">🖼️</div>
+          <div class="fmt-label">Images (PNG)</div>
+          <div class="fmt-desc">One image per page</div>
+        </div>
+      </div>
+
+      <!-- Informational note for Word/Excel (browser limitation) -->
+      <div class="word-note" id="wordNote">
+        ℹ️ <strong>Note:</strong> Word and Excel conversions extract all text content from your PDF and package it into the chosen format. Complex layouts, images, and precise formatting may not be preserved — this is a browser-side limitation.
+      </div>
+
+      <button class="action-btn" onclick="runConvert()">Convert & Download</button>
+      <div class="status" id="status"></div>
+
+      <!-- preview (images only) -->
+      <div id="previewSection" style="display:none; margin-top:28px;">
+        <p class="section-label" style="margin-bottom:12px;">PREVIEW</p>
+        <div class="preview-grid" id="previewGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    let loadedFile = null;
+    let selectedFormat = 'word';
+
+    const dz = document.getElementById('dropZone');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragging'); loadFile(e.dataTransfer.files[0]); });
+    document.getElementById('fileInput').addEventListener('change', e => loadFile(e.target.files[0]));
+
+    function loadFile(file) {
+      if (!file || file.type !== 'application/pdf') return;
+      loadedFile = file;
+      const fn = document.getElementById('fileName');
+      fn.style.display = 'block';
+      fn.innerHTML = `📄 <strong>${file.name}</strong> &nbsp;<span style="color:#aaa;">(${(file.size/1024).toFixed(1)} KB)</span>`;
+      document.getElementById('formatSection').style.display = 'block';
+      updateWordNote();
+    }
+
+    function selectFormat(el) {
+      document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedFormat = el.dataset.fmt;
+      updateWordNote();
+    }
+
+    function updateWordNote() {
+      const note = document.getElementById('wordNote');
+      note.style.display = (selectedFormat === 'word' || selectedFormat === 'excel') ? 'block' : 'none';
+    }
+
+    // ── WORD (.docx) via raw XML ───────────────────────
+    async function convertToWord(pdfDoc) {
+      const totalPages = pdfDoc.numPages;
+      let bodyXml = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        bodyXml += `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t>Page ${i}</w:t></w:r></w:p>`;
+        // Split into paragraphs on double spaces / newlines
+        const paras = pageText.split(/  +/).filter(Boolean);
+        paras.forEach(para => {
+          const safe = para.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+          bodyXml += `<w:p><w:r><w:t xml:space="preserve">${safe}</w:t></w:r></w:p>`;
+        });
+        if (i < totalPages) bodyXml += `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+      }
+
+      const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>${bodyXml}<w:sectPr/></w:body>
+</w:document>`;
+
+      const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+      const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/><w:basedOn w:val="Normal"/>
+    <w:rPr><w:b/><w:sz w:val="28"/></w:rPr>
+  </w:style>
+</w:styles>`;
+
+      const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+
+      const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+      // Build zip using JSZip-compatible manual approach — use Blob with correct structure
+      // We'll create a minimal docx using a data approach compatible with most browsers
+      const { default: JSZip } = await import('https://cdn.skypack.dev/jszip@3.10.1');
+      const zip = new JSZip();
+      zip.file('[Content_Types].xml', contentTypesXml);
+      zip.file('_rels/.rels', rootRelsXml);
+      zip.file('word/document.xml', docXml);
+      zip.file('word/_rels/document.xml.rels', relsXml);
+      zip.file('word/styles.xml', stylesXml);
+      return await zip.generateAsync({ type: 'arraybuffer' });
+    }
+
+    // ── EXCEL (.xlsx) via raw XML ──────────────────────
+    async function convertToExcel(pdfDoc) {
+      const totalPages = pdfDoc.numPages;
+      let rows = '';
+      let rowIdx = 1;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const content = await page.getTextContent();
+        // Header row for page
+        rows += `<row r="${rowIdx++}"><c r="A${rowIdx-1}" t="inlineStr"><is><t>Page ${i}</t></is></c></row>`;
+        content.items.forEach(item => {
+          if (!item.str.trim()) return;
+          const safe = item.str.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          rows += `<row r="${rowIdx}"><c r="A${rowIdx}" t="inlineStr"><is><t xml:space="preserve">${safe}</t></is></c></row>`;
+          rowIdx++;
+        });
+        // blank row between pages
+        rows += `<row r="${rowIdx++}"/>`;
+      }
+
+      const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>${rows}</sheetData>
+</worksheet>`;
+
+      const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="PDF Content" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+      const wbRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>`;
+
+      const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`;
+
+      const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+      const { default: JSZip } = await import('https://cdn.skypack.dev/jszip@3.10.1');
+      const zip = new JSZip();
+      zip.file('[Content_Types].xml', contentTypesXml);
+      zip.file('_rels/.rels', rootRelsXml);
+      zip.file('xl/workbook.xml', workbookXml);
+      zip.file('xl/_rels/workbook.xml.rels', wbRelsXml);
+      zip.file('xl/worksheets/sheet1.xml', sheetXml);
+      return await zip.generateAsync({ type: 'arraybuffer' });
+    }
+
+    // ── MAIN CONVERT ──────────────────────────────────
+    async function runConvert() {
+      const status = document.getElementById('status');
+      status.className = 'status loading'; status.textContent = 'Converting…';
+      document.getElementById('previewSection').style.display = 'none';
+      document.getElementById('previewGrid').innerHTML = '';
+
+      try {
+        const arrayBuffer = await loadedFile.arrayBuffer();
+        const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdfDoc.numPages;
+
+        if (selectedFormat === 'word') {
+          status.textContent = 'Extracting text and building Word document…';
+          const docxBytes = await convertToWord(pdfDoc);
+          downloadBlob(docxBytes, 'converted.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          status.className = 'status success'; status.textContent = `✓ Converted ${totalPages} page(s) to Word!`;
+
+        } else if (selectedFormat === 'excel') {
+          status.textContent = 'Extracting text and building Excel spreadsheet…';
+          const xlsxBytes = await convertToExcel(pdfDoc);
+          downloadBlob(xlsxBytes, 'converted.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          status.className = 'status success'; status.textContent = `✓ Converted ${totalPages} page(s) to Excel!`;
+
+        } else if (selectedFormat === 'image') {
+          const previewGrid = document.getElementById('previewGrid');
+          document.getElementById('previewSection').style.display = 'block';
+
+          for (let i = 1; i <= totalPages; i++) {
+            status.textContent = `Converting page ${i} of ${totalPages}…`;
+            const page = await pdfDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width; canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+            // Thumbnail preview
+            const card = document.createElement('div'); card.className = 'preview-card';
+            const thumb = document.createElement('canvas');
+            const scale = 140 / canvas.width;
+            thumb.width = 140; thumb.height = canvas.height * scale;
+            thumb.getContext('2d').drawImage(canvas, 0, 0, thumb.width, thumb.height);
+            const lbl = document.createElement('div'); lbl.className = 'pg-label'; lbl.textContent = `Page ${i}`;
+            card.appendChild(thumb); card.appendChild(lbl);
+            previewGrid.appendChild(card);
+
+            // Download PNG
+            canvas.toBlob(blob => {
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob); a.download = `page-${i}.png`; a.click();
+            }, 'image/png', 1.0);
+
+            await new Promise(r => setTimeout(r, 300));
+          }
+          status.className = 'status success'; status.textContent = `✓ Converted ${totalPages} page(s) to PNG images!`;
+        }
+
+      } catch(e) {
+        status.className = 'status error'; status.textContent = '✗ Error: ' + e.message;
+      }
+    }
+
+    function downloadBlob(bytes, name, mimeType) {
+      const blob = new Blob([bytes], { type: mimeType });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

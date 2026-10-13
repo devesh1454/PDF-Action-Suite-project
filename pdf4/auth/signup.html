@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account – pdfSuite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-left" href="../index.html">
+      <div class="logo-box">PDF</div>
+      <span class="site-name">pdfSuite</span>
+    </a>
+    <a class="back-btn" href="login.html">← Back to Login</a>
+  </nav>
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <div class="auth-badge" style="background:#d6f0e0;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="#2a9e5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+
+      <div class="auth-header">
+        <h1>Create your account</h1>
+        <p>Get started with pdfSuite — free, instant,<br>no credit card required.</p>
+      </div>
+
+      <div id="signUpMessage" class="auth-status"></div>
+
+      <div class="auth-form">
+        <div class="field-group">
+          <label class="field-label" for="fName">First name</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="text" id="fName" placeholder="First name" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="lName">Last name</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="text" id="lName" placeholder="Last name" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="rEmail">Email address</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="email" id="rEmail" placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="rPassword">Password</label>
+          <div class="field-input-wrap">
+            <input class="field-input has-toggle" type="password" id="rPassword"
+              placeholder="Create a password" autocomplete="new-password"
+              oninput="updateStrength()" />
+            <button class="toggle-pw" type="button" onclick="toggleVisibility('rPassword', this)" tabindex="-1">
+              <i data-lucide="eye" style="width:16px;height:16px;"></i>
+            </button>
+          </div>
+          <div class="pw-strength-wrap">
+            <div class="pw-strength-bar-bg">
+              <div class="pw-strength-bar" id="pwBar"></div>
+            </div>
+            <span class="pw-strength-label" id="pwLabel">Enter a password to check its strength</span>
+          </div>
+        </div>
+
+        <button class="auth-submit-btn" id="submitSignUp" type="button">Create Account</button>
+      </div>
+
+      <p class="auth-footer-link">
+        Already have an account? <a href="login.html">Log in</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- type="module" required for Firebase ES imports in auth.js -->
+  <script type="module" src="auth.js"></script>
+  <script>
+    function toggleVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+      btn.innerHTML = input.type === 'password'
+        ? '<i data-lucide="eye" style="width:16px;height:16px;"></i>'
+        : '<i data-lucide="eye-off" style="width:16px;height:16px;"></i>';
+      lucide.createIcons();
+    }
+
+    function updateStrength() {
+      const pw = document.getElementById('rPassword').value;
+      const bar = document.getElementById('pwBar');
+      const label = document.getElementById('pwLabel');
+      if (!pw) { bar.style.width = '0'; label.textContent = 'Enter a password to check its strength'; return; }
+      let score = 0;
+      if (pw.length >= 8) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      const levels = [
+        { pct:'25%', color:'#e03e2d', text:'Weak' },
+        { pct:'50%', color:'#f59e0b', text:'Fair' },
+        { pct:'75%', color:'#3b82f6', text:'Good' },
+        { pct:'100%', color:'#22c55e', text:'Strong' },
+      ];
+      const lvl = levels[Math.max(score - 1, 0)];
+      bar.style.width = lvl.pct; bar.style.background = lvl.color;
+      label.textContent = 'Strength: ' + lvl.text;
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

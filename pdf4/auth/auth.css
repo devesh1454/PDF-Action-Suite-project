@@ -1,0 +1,284 @@
+/* ── AUTH PAGES – pdfSuite ─────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #faf8f5;
+  color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── NAVBAR ─────────────────────────────────────── */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 48px;
+  height: 58px;
+  border-bottom: 1px solid #e8e4de;
+  flex-shrink: 0;
+  background: #faf8f5;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-box {
+  background: #e03e2d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.site-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.back-btn {
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #d0d0d0;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.back-btn:hover { background: #f5f5f5; }
+
+/* ── AUTH WRAPPER ───────────────────────────────── */
+.auth-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 60px;
+}
+
+.auth-card {
+  background: #fff;
+  border: 1px solid #e8e4de;
+  border-radius: 16px;
+  padding: 40px 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+}
+
+/* ── CARD HEADER ────────────────────────────────── */
+.auth-header {
+  margin-bottom: 28px;
+}
+
+.auth-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.auth-header p {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.5;
+}
+
+/* ── FORM ───────────────────────────────────────── */
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+.field-group { display: flex; flex-direction: column; gap: 7px; }
+
+.field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #444;
+}
+
+.field-input-wrap { position: relative; }
+
+.field-input {
+  width: 100%;
+  border: 1px solid #d8d8d8;
+  border-radius: 9px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-color: #1a1a1a; }
+.field-input.has-toggle { padding-right: 44px; }
+
+.toggle-pw {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #bbb;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+.toggle-pw:hover { color: #888; }
+
+/* ── PASSWORD STRENGTH ──────────────────────────── */
+.pw-strength-wrap { margin-top: 4px; }
+.pw-strength-bar-bg {
+  height: 4px;
+  background: #eee;
+  border-radius: 2px;
+  margin-bottom: 5px;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s, background 0.3s;
+}
+.pw-strength-label {
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* ── DIVIDER ────────────────────────────────────── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e4de;
+}
+.auth-divider span {
+  font-size: 12px;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+/* ── GOOGLE BUTTON ──────────────────────────────── */
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 9px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.google-btn:hover { background: #f5f5f5; border-color: #bbb; }
+
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ── PRIMARY ACTION BTN ─────────────────────────── */
+.auth-submit-btn {
+  width: 100%;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+.auth-submit-btn:hover { background: #333; }
+.auth-submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* ── FOOTER LINK ────────────────────────────────── */
+.auth-footer-link {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+  margin-top: 20px;
+}
+.auth-footer-link a {
+  color: #1a1a1a;
+  font-weight: 600;
+  text-decoration: none;
+}
+.auth-footer-link a:hover { text-decoration: underline; }
+
+/* ── STATUS / ERROR ─────────────────────────────── */
+.auth-status {
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  display: none;
+}
+.auth-status.success { background: #d6f0e0; color: #1a6b3c; display: block; }
+.auth-status.error   { background: #fde8e8; color: #b91c1c; display: block; }
+.auth-status.loading { background: #deeaf7; color: #1a4a8a; display: block; }
+
+/* ── LOCK BADGE (top of card) ───────────────────── */
+.auth-badge {
+  width: 44px;
+  height: 44px;
+  background: #fdefd4;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.auth-badge svg {
+  width: 22px;
+  height: 22px;
+  color: #d4900a;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 560px) {
+  .navbar { padding: 0 20px; }
+  .auth-card { padding: 28px 22px 26px; }
+  .auth-wrapper { padding: 24px 16px 48px; }
+}
